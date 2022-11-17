@@ -60,6 +60,12 @@ class ImgCaptcha
     protected $bg = [243, 251, 254];
     //算术验证码
     protected $math = false;
+    //验证码缓存类型 session/cache
+    protected $type = 'cache';
+    //验证码缓存head返回key
+    protected $head_key = 'key';
+    //验证码缓存key前缀
+    protected $cache_key= 'captcha_';
  
     /**
      * 架构方法 设置参数
@@ -127,7 +133,7 @@ class ImgCaptcha
         $hash = password_hash($key, PASSWORD_BCRYPT, ['cost' => 10]);
 
         // session or cache
-        if (isset($this->config['type']) && $this->config['type'] == 'session') {
+        if ($this->type == 'session') {
             $this->session->set('captcha', [
                 'key' => $hash,
             ]);
@@ -146,10 +152,10 @@ class ImgCaptcha
      * @param string $key 用户验证码
      * @return bool 用户验证码是否正确
      */
-    public function check(string $code, string $key): bool
+    public function check(string $code, string $key = ''): bool
     {
         // session or cache
-        if (isset($this->config['type']) && $this->config['type'] == 'session') {
+        if ($this->type == 'session') {
             if (!$this->session->has('captcha')) {
                 return false;
             }
@@ -209,8 +215,7 @@ class ImgCaptcha
         $this->color = imagecolorallocate($this->im, mt_rand(1, 150), mt_rand(1, 150), mt_rand(1, 150));
  
         // 验证码使用随机字体
-        $ttfPath = root_path().'/vendor/topthink/think-captcha/assets/' . ($this->useZh ? 'zhttfs' : 'ttfs') . '/';
-        $ttfPath = __DIR__ . '/../assets/';
+        $ttfPath = __DIR__ . '/../assets/' . ($this->useZh ? 'zhttfs' : 'ttfs') . '/';
  
         if (empty($this->fontttf)) {
             $dir  = dir($ttfPath);
@@ -250,8 +255,10 @@ class ImgCaptcha
  
             imagettftext($this->im, $this->fontSize, $angle, $x, $y, $this->color, $fontttf, $char);
         }
-        $key = uniqid() . mt_rand(1000, 9999);
-        Cache::set($key, $generator['value'], $this->config['expire'] ?? 300);
+        if ($this->type == 'cache') {
+            $key = $this->cache_key . uniqid() . mt_rand(1000, 9999);
+            Cache::set($key, $generator['value'], $this->config->expire ?? 300);
+        }
         ob_start();
         // 输出图像
         imagepng($this->im);
@@ -259,10 +266,10 @@ class ImgCaptcha
         imagedestroy($this->im);
 
         // session or cache
-        if (isset($this->config['type']) && $this->config['type'] == 'session') {
+        if ($this->type == 'session') {
             return response($content, 200, ['Content-Length' => strlen($content)])->contentType('image/png');
         } else {
-            return response($content, 200, ['Content-Length' => strlen($content), ($this->config['head_key'] ?? 'key') => $key])->header(['Access-Control-Expose-Headers' => 'key'])->contentType('image/png');
+            return response($content, 200, ['Content-Length' => strlen($content), $this->head_key => $key])->header(['Access-Control-Expose-Headers' => 'key'])->contentType('image/png');
         }
    }
  

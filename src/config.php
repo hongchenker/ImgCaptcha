@@ -42,6 +42,8 @@ return [
     'type'      => 'cache',
     // 验证码缓存head返回key
     'head_key'  => 'key',
+    // 验证码缓存key前缀
+    'cache_key' => 'captcha_',
 
     // 添加额外的验证码设置
     // verify => [
