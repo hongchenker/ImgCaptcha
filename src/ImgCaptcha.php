@@ -150,10 +150,13 @@ class ImgCaptcha
      * @access public
      * @param string $code 用户验证码
      * @param string $key 用户验证码
+     * @param null|string $config
      * @return bool 用户验证码是否正确
      */
-    public function check(string $code, string $key = ''): bool
+    public function check(string $code, string $key = '', string $config = null): bool
     {
+        $this->configure($config);
+
         // session or cache
         if ($this->type == 'session') {
             if (!$this->session->has('captcha')) {
